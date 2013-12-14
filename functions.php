@@ -2,6 +2,8 @@
 /*
  * SETUP THE CRON
 */
+require_once 'TweetQuery.php';
+
 function dg_tw_load_next_items() {
 	global $dg_tw_queryes, $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb,$connection;
 	
@@ -19,17 +21,17 @@ function dg_tw_load_next_items() {
 	$mega_tweet = array();
 
 	foreach($dg_tw_queryes as $slug=>$query) {
-		$parameters = array(
-				'q' => $query['value'],
-				'since_id' => $query['last_id'],
-				'include_entities' => true,
-				'count' => $dg_tw_ft['ipp']
+		
+		$tweet_query = new SearchTweetQuery(
+			$query['value'],
+			TweetQueryMethod::SEARCH,
+			$query['last_id'],
+			$dg_tw_ft['ipp']
 		);
-		
+
+		$tweets = $tweet_query->getTweets($connection);
+
 		$count = 0;
-		
-		error_log('Loop query string \n');
-		$dg_tw_data = $connection->get('search/tweets', $parameters);
 
 		//Set the last tweet id
 		if(count($dg_tw_data->statuses)) {
@@ -37,28 +39,28 @@ function dg_tw_load_next_items() {
 			$dg_tw_queryes[urlencode($query['value'])]['last_id'] = $status->id_str;
 		}
 		
-		foreach($dg_tw_data->statuses as $key=>$item) {
+		foreach($tweets as $tweet) {
 			$count++;
 			
-			if($dg_tw_ft['exclude_retweets'] && isset($item->retweeted_status))
+			if($dg_tw_ft['exclude_retweets'] && isset($tweet->retweeted_status))
 				continue;
 			
-			if($dg_tw_ft['exclude_no_images'] && !count($item->entities->media))
+			if($dg_tw_ft['exclude_no_images'] && !count($tweet->entities->media))
 				continue;
 			
 			if(!isset($dg_tw_ft['method']) || $dg_tw_ft['method'] == 'multiple') {
-				if(dg_tw_iswhite($item)) {
-					$result = dg_tw_publish_tweet($item,$query);
+				if(dg_tw_iswhite($tweet)) {
+					$result = dg_tw_publish_tweet($tweet,$query);
 				} //iswhite
-			} elseif(!in_array($item->id_str,$dg_tw_exclusions)) {
+			} elseif(!in_array($tweet->id_str,$dg_tw_exclusions)) {
 				$mega_tweet[] = array(
-						'text'=>$item->text,
-						'author'=> isset($item->user->display_name) ? $item->user->display_name : $item->user->name,
-						'id'=>$item->id_str,
-						'created_at'=>$item->created_at
+						'text'=>$tweet->text,
+						'author'=> isset($tweet->user->display_name) ? $tweet->user->display_name : $tweet->user->name,
+						'id'=>$tweet->id_str,
+						'created_at'=>$tweet->created_at
 				);
 				
-				$dg_tw_exclusions[$item->id_str] = $item->id_str;
+				$dg_tw_exclusions[$tweet->id_str] = $tweet->id_str;
 			}
 			
 			if($count == $dg_tw_ft['ipp'])
