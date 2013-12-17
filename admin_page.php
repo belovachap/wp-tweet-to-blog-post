@@ -90,7 +90,6 @@
 											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
 											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
 										</p>
-										<p><?php echo $query->getStartFromTweetID(); ?></p>
 							<?php 		} else { 
 							?>
 										<p style="text-align:left;padding:5px;" class="js-converter-container" data-index="<?php echo $count; ?>">
@@ -100,8 +99,6 @@
 											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
 											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
 										</p>
-										<p><?php echo $query->getStartFromTweetID(); ?></p>
-
 								
 							<?php   	}
 									$count++;
