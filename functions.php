@@ -3,6 +3,7 @@
  * SETUP THE CRON
 */
 require_once 'TweetQuery.php';
+require_once 'TweetToPostPresentation.php';
 
 function dg_tw_load_next_items() {
 	global $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb,$connection;

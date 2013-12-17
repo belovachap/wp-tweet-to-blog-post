@@ -65,10 +65,7 @@
 					<p class="dg_tw_horiz">
 						<span class="description">You can add more item by click the ADD button below</span><br/>
 						<input type="text" id="dg_tw_add_title" size="60" name="dg_tw_query" class="regular-text" value=""> 
-						<select id="dg_tw_query_method">
-							<option value="<?php echo TweetQueryMethod::SEARCH; ?>">Twitter Search</option>
-							<option value="<?php echo TweetQueryMethod::USER_TIMELINE; ?>">User Timeline</option>
-						</select>
+						<?php TweetToPostPresentation::render_tweet_query_method_select($id="dg_tw_query_method"); ?>
 						<input type="button" id="dg_tw_add_element" name="add_feed" value="Add" class="button-primary">
 					</p>
 				<br/>
@@ -88,7 +85,7 @@
 											<input type="hidden" name="dg_tw_item_query[<?php echo $count; ?>][id]" value="<?php echo $converter->getID(); ?>">
 											<input type="text" size="20" class="regular-text" name="dg_tw_item_query[<?php echo $count; ?>][value]" value="<?php echo $query->getSearchQuery(); ?>">
 											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
-											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
+											&nbsp;&nbsp;&nbsp;method:&nbsp;<?php TweetToPostPresentation::render_tweet_query_method_select($id=null, $name="dg_tw_item_query[" . $count . "][method]", $selected_method=$query->getMethod()); ?>
 										</p>
 							<?php 		} else { 
 							?>
@@ -97,7 +94,7 @@
 											<input type="hidden" name="dg_tw_item_query[<?php echo $count; ?>][id]" value="<?php echo $converter->getID(); ?>">
 											<input type="text" size="20" class="regular-text" name="dg_tw_item_query[<?php echo $count; ?>][value]" value="<?php echo $query->getScreenName(); ?>">
 											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
-											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
+											&nbsp;&nbsp;&nbsp;method:&nbsp;<?php TweetToPostPresentation::render_tweet_query_method_select($id=null, $name="dg_tw_item_query[" . $count . "][method]", $selected_method=$query->getMethod()); ?>
 										</p>
 								
 							<?php   	}

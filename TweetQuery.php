@@ -4,11 +4,13 @@ abstract class TweetQueryMethod
 {
 	const SEARCH = 0;
 	const USER_TIMELINE = 1;
-
-	public $QUERY_METHOD_NAMES = array(
-		SEARCH => "Twitter Search",
-		USER_TIMELINE => "User Timeline",
-	);
+	
+	public static function getMethodsAndNames() {
+		return array(
+			self::SEARCH => "Twitter Search",
+			self::USER_TIMELINE => "User Timeline",
+		);
+	}
 }
 
 
