@@ -501,6 +501,10 @@ function dg_tw_options() {
 function dg_tw_publish_tweet($tweet,$tag='') {
 	global $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
 	
+	// When adding tweets from a cron scheduled event, we need to explicitly
+	// import wp-admin/includes/post.php to use get_default_post_to_edit()
+	require_once(ABSPATH . 'wp-admin/includes/post.php');
+	
 	$post_type			= isset($dg_tw_ft['post_type']) ? $dg_tw_ft['post_type'] : 'post';
 	$dg_tw_start_post = get_default_post_to_edit($post_type,true);
 	$username			= dg_tw_tweet_user($tweet);
