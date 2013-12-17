@@ -5,7 +5,7 @@
 require_once 'TweetQuery.php';
 
 function dg_tw_load_next_items() {
-	global $dg_tw_queryes, $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb,$connection;
+	global $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb,$connection;
 	
 	if (!function_exists('curl_init')){
 		error_log('The DG Twitter to blog plugin require CURL libraries');
@@ -20,27 +20,14 @@ function dg_tw_load_next_items() {
 	
 	$mega_tweet = array();
 
-	foreach($dg_tw_queryes as $slug=>$query) {
-		
-		$tweet_query = new SearchTweetQuery(
-			$query['value'],
-			TweetQueryMethod::SEARCH,
-			$query['last_id'],
-			$dg_tw_ft['ipp']
-		);
-
-		$tweets = $tweet_query->getTweets($connection);
-
-		$count = 0;
-
-		//Set the last tweet id
-		if(count($dg_tw_data->statuses)) {
-			$status = end($dg_tw_data->statuses);
-			$dg_tw_queryes[urlencode($query['value'])]['last_id'] = $status->id_str;
-		}
-		
-		foreach($tweets as $tweet) {
-			$count++;
+	$converters = get_option('dg_tw_converters', array());
+	foreach($converters as $converter)
+	{
+		$query = $converter->getTweetQuery();
+		$tweets = $query->getTweets($connection, $dg_tw_ft['ipp']);
+		foreach($tweets as $tweet)
+		{
+			$query->setNewestStartFromTweetID($tweet->id_str);
 			
 			if($dg_tw_ft['exclude_retweets'] && isset($tweet->retweeted_status))
 				continue;
@@ -48,11 +35,15 @@ function dg_tw_load_next_items() {
 			if($dg_tw_ft['exclude_no_images'] && !count($tweet->entities->media))
 				continue;
 			
-			if(!isset($dg_tw_ft['method']) || $dg_tw_ft['method'] == 'multiple') {
-				if(dg_tw_iswhite($tweet)) {
-					$result = dg_tw_publish_tweet($tweet,$query);
+			if(!isset($dg_tw_ft['method']) || $dg_tw_ft['method'] == 'multiple')
+			{
+				if(dg_tw_iswhite($tweet))
+				{
+					$result = dg_tw_publish_tweet($tweet,$converter->getTagForPost());
 				} //iswhite
-			} elseif(!in_array($tweet->id_str,$dg_tw_exclusions)) {
+			}
+			elseif(!in_array($tweet->id_str,$dg_tw_exclusions))
+			{
 				$mega_tweet[] = array(
 						'text'=>$tweet->text,
 						'author'=> isset($tweet->user->display_name) ? $tweet->user->display_name : $tweet->user->name,
@@ -62,13 +53,10 @@ function dg_tw_load_next_items() {
 				
 				$dg_tw_exclusions[$tweet->id_str] = $tweet->id_str;
 			}
-			
-			if($count == $dg_tw_ft['ipp'])
-				break;
 		}
 	}
 	
-	update_option('dg_tw_queryes',$dg_tw_queryes);
+	update_option('dg_tw_converters', $converters);
 	
 	if(!empty($mega_tweet)) {
 		dg_tw_publish_mega_tweet($mega_tweet);
@@ -142,8 +130,9 @@ function dg_add_menu_item() {
  * Call admin page for this plugin
  */
 function dg_tw_drawpage() {
-	global $dg_tw_queryes,$dg_tw_time, $dg_tw_publish, $dg_tw_ft, $dg_tw_tags, $dg_tw_cats,$tokens_error,$wp_post_types;
+	global $dg_tw_time, $dg_tw_publish, $dg_tw_ft, $dg_tw_tags, $dg_tw_cats,$tokens_error,$wp_post_types;
 	
+	$dg_tw_converters = get_option('dg_tw_converters', array());
 	require_once('admin_page.php');
 }
 
@@ -151,8 +140,9 @@ function dg_tw_drawpage() {
  * Call admin page for this plugin
  */
 function dg_tw_drawpage_retrieve() {
-	global $dg_tw_queryes, $dg_tw_publish, $dg_tw_ft, $dg_tw_tags, $dg_tw_cats,$connection,$tokens_error;
+	global $dg_tw_publish, $dg_tw_ft, $dg_tw_tags, $dg_tw_cats,$connection,$tokens_error;
 	
+	$dg_tw_converters = get_option('dg_tw_converters', array());
 	require_once('retrieve_page.php');
 }
 
@@ -218,7 +208,7 @@ function dg_tw_slug($str) {
  * Check if there is blacklisted words in the text of the tweet
  */
 function dg_tw_iswhite($tweet) {
-	global $dg_tw_queryes, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
+	global $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
 	
 	if(empty($dg_tw_ft['badwords']) && empty($dg_tw_ft['baduser']))
 		return true;
@@ -314,9 +304,8 @@ function dg_tw_the_author_url($author) {
  * Plugin activation hook set basic options if not set already, and start cronjobs if necessary
  */
 function dg_tw_activation() {
-	global $dg_tw_queryes, $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft;
+	global $dg_tw_time, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft;
 
-	$dg_tw_queryes = get_option('dg_tw_queryes');
 	$dg_tw_time = get_option('dg_tw_time');
 	$dg_tw_publish = (string) get_option('dg_tw_publish');
 	$dg_tw_tags = (string) get_option('dg_tw_tags');
@@ -361,7 +350,7 @@ function dg_tw_deactivation() {
 }
 
 function dg_tw_options() {
-	global $dg_tw_queryes, $dg_tw_time, $dg_tw_publish, $dg_tw_tags,$dg_tw_cats, $dg_tw_ft,$connection,$tokens_error;
+	global $dg_tw_time, $dg_tw_publish, $dg_tw_tags,$dg_tw_cats, $dg_tw_ft,$connection,$tokens_error;
 	
 	if (!function_exists('curl_init'))
 	{
@@ -369,7 +358,6 @@ function dg_tw_options() {
 		return;
 	}
 
-	$dg_tw_queryes = get_option('dg_tw_queryes');
 	$dg_tw_time = get_option('dg_tw_time');
 	$dg_tw_publish = (string) get_option('dg_tw_publish');
 	$dg_tw_tags = (string) get_option('dg_tw_tags');
@@ -390,26 +378,10 @@ function dg_tw_options() {
 	}
 
 	if(isset($_POST['dg_tw_data_update'])) {
-		$dg_temp_array = array();
 
-		/*
-		 * Each query string verified to ensure there is no duplicate and save last id
-		 */
-		if(isset($_POST['dg_tw_item_query']) && is_array($_POST['dg_tw_item_query'])) {
-			foreach($_POST['dg_tw_item_query'] as $item_query) {
-				if(isset($dg_tw_queryes[urlencode($item_query['value'])])) {
-					if($dg_tw_queryes[urlencode($item_query['value'])]['tag'] != $item_query['tag']) {
-						$dg_tw_queryes[urlencode($item_query['value'])]['tag'] = $item_query['tag'];
-					}
-					$dg_temp_array[urlencode($item_query['value'])] = $dg_tw_queryes[urlencode($item_query['value'])];
-				} else {
-					$dg_temp_array[urlencode($item_query['value'])] = array("value"=>$item_query['value'],"tag"=>$item_query['tag'],"last_id"=>0,"firts_id"=>0);
-				}
-			}
-		}
-
-		update_option('dg_tw_queryes',$dg_temp_array);
-		$dg_tw_queryes = get_option('dg_tw_queryes');
+		// UPDATE TWEET-TO-POST CONVERTERS
+		$converter_inputs = array_key_exists('dg_tw_item_query', $_POST) ? $_POST['dg_tw_item_query'] : array();
+		TweetToPostConverterManager::update_converters_from_admin_page($converter_inputs);
 
 		/*
 		 * UPDATE CRON TIME
@@ -525,13 +497,12 @@ function dg_tw_options() {
 /*
  * Create post from tweet
  */
-function dg_tw_publish_tweet($tweet,$query = false) {
-	global $dg_tw_queryes, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
+function dg_tw_publish_tweet($tweet,$tag='') {
+	global $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
 	
 	$post_type			= isset($dg_tw_ft['post_type']) ? $dg_tw_ft['post_type'] : 'post';
 	$dg_tw_start_post = get_default_post_to_edit($post_type,true);
 	$username			= dg_tw_tweet_user($tweet);
-	$current_query		= ($query != false) ? $query : array('tag'=>'','value'=>'');
 			
 	$querystr = "SELECT *
 					FROM $wpdb->postmeta
@@ -540,7 +511,7 @@ function dg_tw_publish_tweet($tweet,$query = false) {
 				
 	$postid 		= $wpdb->get_results($querystr);
 	$author_tag = ( !empty($dg_tw_ft['authortag']) ) ? ','.$username : '';
-	$post_tags 	= htmlspecialchars($dg_tw_tags.','.$current_query['tag'].$author_tag);
+	$post_tags 	= htmlspecialchars($dg_tw_tags.','.$tag.$author_tag);
 	
 	if(!count($postid)) {
 		$tweet_content	= dg_tw_regexText($tweet->text);
@@ -585,10 +556,6 @@ function dg_tw_publish_tweet($tweet,$query = false) {
 			set_post_format( $dg_tw_this_post , $format);
 			
 			/*POST METAS*/
-			$query_string = urlencode($current_query['value']);
-			$query_string = ($query != false) ? $query['value'] : $query_string;
-	
-			add_post_meta($dg_tw_this_post, 'dg_tw_query', $query_string);
 			add_post_meta($dg_tw_this_post, 'dg_tw_id', $tweet->id_str);
 			add_post_meta($dg_tw_this_post, 'dg_tw_author', $username);
 			add_post_meta($dg_tw_this_post, 'dg_tw_author_avatar', $tweet->user->profile_image_url);
@@ -605,7 +572,7 @@ function dg_tw_publish_tweet($tweet,$query = false) {
  * Create post from tweet
  */
 function dg_tw_publish_mega_tweet($tweets) {
-	global $dg_tw_queryes, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
+	global $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
 	
 	$content = '<ul id="dg_tw_list_tweets">';
 	
@@ -671,7 +638,7 @@ function dg_tw_regexText($string){
 }
 
 function filter_text($tweet,$format="",$content="",$limit=-1,$remove_url=false) {
-	global $dg_tw_queryes, $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
+	global $dg_tw_publish, $dg_tw_tags, $dg_tw_cats, $dg_tw_ft, $wpdb;
 	
 	$text = ($content == "") ? $tweet->text : $content;
 	$result = ($format == "") ? $text : $format;
@@ -774,27 +741,18 @@ function dg_tw_insert_attachments($tweet,$post_id) {
  * Manual publish
  */
 function dg_tw_manual_publish() {
-	global $wpdb,$connection,$dg_tw_queryes;
-	
-	if(!$dg_tw_queryes) {
-		$dg_tw_queryes = get_option('dg_tw_queryes');
-	}
+	global $wpdb, $connection;
 	
 	$tweet_id = $_REQUEST['id'];
-	$query = false;
-	
-	foreach($dg_tw_queryes as $single_query) {
-		if($single_query['value'] == $_REQUEST['query']) {
-			$query = $single_query;
-		}
-	}
-	
-	
-	if(empty($tweet_id)) {
+	$converter_id = $_REQUEST['cid'];
+	$dg_tw_converters = get_option('dg_tw_converters');
+
+	if(empty($tweet_id) || !array_key_exists($converter_id, $dg_tw_converters))
+	{
 		echo "false";
 		die();
-	}
-	
+	}	
+
 	$parameters = array(
 		'id' => $tweet_id,
 		'include_entities' => true
@@ -807,7 +765,8 @@ function dg_tw_manual_publish() {
 		die();
 	}
 	
-	$result = dg_tw_publish_tweet($dg_tw_data,$query);
+	$converter = $dg_tw_converters[$converter_id];
+	$result = dg_tw_publish_tweet($dg_tw_data,$converter->getTagForPost());
 
 	echo $result;
 	die();

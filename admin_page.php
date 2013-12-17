@@ -61,16 +61,13 @@
 				</p>
 				
 				<p>
-					<b>Your search queryes</b><br/>
+					<b>Your search queries</b><br/>
 					<p class="dg_tw_horiz">
 						<span class="description">You can add more item by click the ADD button below</span><br/>
 						<input type="text" id="dg_tw_add_title" size="60" name="dg_tw_query" class="regular-text" value=""> 
-						<select id="dg_tw_query_method" disabled="disabled">
-							<option value="search/tweets" selected="selected">Standard</option>
-							<option value="statuses/user_timeline">User timeline (screen_name)</option>
-							<option value="statuses/retweets/">Retweets of id (tweet_id)</option>
-							<option value="favorites/list">User favorites (screen_name)</option>
-							<option value="lists/statuses">Lists (list_id or slug of list)</option>
+						<select id="dg_tw_query_method">
+							<option value="<?php echo TweetQueryMethod::SEARCH; ?>">Twitter Search</option>
+							<option value="<?php echo TweetQueryMethod::USER_TIMELINE; ?>">User Timeline</option>
 						</select>
 						<input type="button" id="dg_tw_add_element" name="add_feed" value="Add" class="button-primary">
 					</p>
@@ -78,18 +75,38 @@
 				</p>
 				
 				<p>
-					<span class="description">Current queryes</span><br/>
+					<span class="description">Current queries</span><br/>
 					<p class="dg_tw_horiz">
 						<div id="dg_tw_elements_selected">
-							<?php if(!empty($dg_tw_queryes)) foreach($dg_tw_queryes as $query_element) { ?>
-								<p style="text-align:left;padding:5px;">
-									<input class="button-primary dg_tw_button_remove" type="button" name="delete" value="Delete"> 
-									<input type="text" size="20" class="regular-text" name="dg_tw_item_query[<?php echo $query_element['value']; ?>][value]" value="<?php echo $query_element['value']; ?>">
-									&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $query_element['value']; ?>][tag]" value="<?php echo $query_element['tag']; ?>">
-									&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $query_element['value']; ?>][method]" value="<?php echo 'method'; ?>" disabled="disabled">
-									<span> - <a target="_blank" href="https://twitter.com/search?q=<?php echo urlencode($query_element['value']); ?>&since_id=<?php echo $query_element['last_id']; ?>">From last</a></span> 
-								</p>
-							<?php } ?>
+							<?php   $count = 0;
+								foreach($dg_tw_converters as $converter) {
+									$query = $converter->getTweetQuery();
+									if($query->getMethod() == TweetQueryMethod::SEARCH) {
+							?>
+										<p style="text-align:left;padding:5px;" class="js-converter-container" data-index="<?php echo $count; ?>">
+											<input class="button-primary dg_tw_button_remove" type="button" name="delete" value="Delete">
+											<input type="hidden" name="dg_tw_item_query[<?php echo $count; ?>][id]" value="<?php echo $converter->getID(); ?>">
+											<input type="text" size="20" class="regular-text" name="dg_tw_item_query[<?php echo $count; ?>][value]" value="<?php echo $query->getSearchQuery(); ?>">
+											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
+											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
+										</p>
+										<p><?php echo $query->getStartFromTweetID(); ?></p>
+							<?php 		} else { 
+							?>
+										<p style="text-align:left;padding:5px;" class="js-converter-container" data-index="<?php echo $count; ?>">
+											<input class="button-primary dg_tw_button_remove" type="button" name="delete" value="Delete">
+											<input type="hidden" name="dg_tw_item_query[<?php echo $count; ?>][id]" value="<?php echo $converter->getID(); ?>">
+											<input type="text" size="20" class="regular-text" name="dg_tw_item_query[<?php echo $count; ?>][value]" value="<?php echo $query->getScreenName(); ?>">
+											&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][tag]" value="<?php echo $converter->getTagForPost(); ?>">
+											&nbsp;&nbsp;&nbsp;method:&nbsp;<input type="text" size="20" name="dg_tw_item_query[<?php echo $count; ?>][method]" value="<?php echo $query->getMethod(); ?>">
+										</p>
+										<p><?php echo $query->getStartFromTweetID(); ?></p>
+
+								
+							<?php   	}
+									$count++;
+								} 
+							?>
 						</div>
 					</p>
 				</p>

@@ -3,7 +3,7 @@
 	<h2>Twitter To WordPress Autopost</h2>
 	
 	<?php
-		if(empty($dg_tw_queryes)) {
+		if(empty($dg_tw_converters)) {
 			echo "Nothing to show here";
 			exit;
 		}
@@ -13,27 +13,21 @@
 			exit;
 		}
 		
-		foreach($dg_tw_queryes as $query) {
-			$parameters = array(
-				'q' => $query['value'],
-				'since_id' => $query['last_id'],
-				'include_entities' => true,
-				'count' => $dg_tw_ft['ipp']
-			);
+		foreach($dg_tw_converters as $converter) {
+			$query = $converter->getTweetQuery();
+			$tweets = $query->getTweets($connection, $dg_tw_ft['ipp']);
 			
-			$dg_tw_data = $connection->get('search/tweets', $parameters);
+			// Need to add error handling to support this...
+			//if(isset($dg_tw_data->errors) && count($dg_tw_data->errors)) {
+			//	$error = current($dg_tw_data->errors);
+			//	
+			//	echo "<h1>ERROR! Check your twitter app configuration</h1>";
+			//	echo "<h2>Info: <i>".$error->message."</i></h2>";
+			//	break;
+			//}
 			
-			if(isset($dg_tw_data->errors) && count($dg_tw_data->errors)) {
-				$error = current($dg_tw_data->errors);
-				
-				echo "<h1>ERROR! Check your twitter app configuration</h1>";
-				echo "<h2>Info: <i>".$error->message."</i></h2>";
-				break;
-			}
-			
-			
-			if(isset($dg_tw_data->statuses)) {
-				echo "<h3>".$query['value']."</h3>";
+			if(!empty($tweets)) {
+				echo "<h3>" . $query->getTitle() . "</h3>";
 				
 				?>
 				<table class="widefat" cellspacing="0">
@@ -60,7 +54,7 @@
 					
 					<tbody id="the-list">
 						<?php
-							foreach($dg_tw_data->statuses as $item) {
+							foreach($tweets as $item) {
 								if( isset($dg_tw_ft['exclude_retweets']) && $dg_tw_ft['exclude_retweets'] && isset($item->retweeted_status))
 									continue;
 									
@@ -96,7 +90,7 @@
 											<?php echo $item->created_at; ?>
 										</td>
 										<td scope="row">
-											<button type="button" class="manual_publish" data-query="<?php echo $query['value']; ?>" data-pid="<?php echo $item->id_str; ?>">Publish</button>
+											<button type="button" class="manual_publish" data-cid="<?php echo $converter->getID(); ?>" data-pid="<?php echo $item->id_str; ?>">Publish</button>
 										</td>
 									</tr>
 									<?php
@@ -137,7 +131,7 @@ jQuery(document).ready(function($) {
 	jQuery('.manual_publish').on('click',function () {
 		var selected = jQuery(this);
 		var pid = selected.data('pid');
-		var query = selected.data('query');
+		var converter_id = selected.data('cid');
 		var parent = selected.parent();
 		var parent_parent = selected.parent().parent();
 
@@ -147,7 +141,7 @@ jQuery(document).ready(function($) {
 		var data = {
 			action: 'dg_tw_manual_publish',
 			id: pid,
-			query: query
+			cid: converter_id
 		};
 		
 		jQuery.post(ajaxurl, data, function(response) {

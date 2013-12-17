@@ -54,7 +54,40 @@ function ratio_mode() {
 
 function dg_tw_add_query() {
 	if(jQuery('#dg_tw_add_title').val().length != 0) {
-		jQuery('#dg_tw_elements_selected').append('<p style="text-align:left;padding:5px;"><input class="button-primary dg_tw_button_remove" type="button" name="delete" value="Delete"><input type="text" size="20" class="regular-text" name="dg_tw_item_query['+jQuery('#dg_tw_add_title').val()+'][value]" value="'+jQuery('#dg_tw_add_title').val()+'">&nbsp;&nbsp;&nbsp;tag:&nbsp;<input type="text" size="20" name="dg_tw_item_query['+jQuery('#dg_tw_add_title').val()+'][tag]" value="'+jQuery('#dg_tw_add_title').val()+'"></span></p>');
+		// Find the next available index
+		var index = -1;
+		jQuery('.js-converter-container').each(function() {
+			index = Math.max(index, jQuery(this).data('index'));
+		});
+		index += 1;
+
+		// Build new converter container
+		var $container = jQuery('<p style="text-align:left;padding:5px;" class="js-converter-container">');
+		$container.data('index', index);
+
+		var input_name_prefix = 'dg_tw_item_query[' + index + ']';
+		var query_value = jQuery('#dg_tw_add_title').val();
+
+		var $deleteButton = jQuery('<input class="button-primary dg_tw_button_remove" type="button" name="delete" value="Delete">');
+		var $converterIDInput = jQuery('<input type="hidden" name="' + input_name_prefix + '[id]" value="">');
+		var $queryValueInput = jQuery('<input type="text" size="20" class="regular-text" name="' + input_name_prefix + '[value]" value="' + query_value + '">');
+		var $tagLabel = jQuery('<span>&nbsp;&nbsp;&nbsp;tag:&nbsp;</span>');
+		var $tagInput = jQuery('<input type="text" size="20" name="' + input_name_prefix + '[tag]" value="' + query_value +'">');
+		var $methodLabel = jQuery('<span>&nbsp;&nbsp;&nbsp;method:&nbsp;</span>');
+		var $methodInput = jQuery('#dg_tw_query_method').clone().attr('name', input_name_prefix + '[method]').removeAttr('id');
+		$methodInput.val(jQuery('#dg_tw_query_method').val());
+
+		$container.append(
+			$deleteButton,
+			$converterIDInput,
+			$queryValueInput,
+			$tagLabel,
+			$tagInput,
+			$methodLabel,
+			$methodInput
+		);
+
+		jQuery('#dg_tw_elements_selected').append($container);
 		jQuery('#dg_tw_add_title').attr('value','')
 	} else {
 		alert('Fill the query string box!');

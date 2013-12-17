@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: Twitter posts to Blog
-Description: Post twetts to your blog
+Description: Post tweets to your blog.
 Version: 1.11.20
 Author: Damian Gomez
 */
@@ -10,7 +10,6 @@ require_once 'libs/twitteroauth/twitteroauth.php';
 require_once 'functions.php';
 
 //Variables
-$dg_tw_queryes = array();
 $dg_tw_time = array();
 $dg_tw_ft = array();
 $dg_tw_publish = '';
