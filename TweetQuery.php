@@ -106,7 +106,7 @@ class UserTimelineTweetQuery extends AbstractTweetQuery
 {
 	protected $screen_name;
 
-	public function __construct($screen_name, $start_from_tweet_id)
+	public function __construct($screen_name, $start_from_tweet_id=null)
 	{
 		parent::__construct($start_from_tweet_id);
 		$this->setScreenName($screen_name);
